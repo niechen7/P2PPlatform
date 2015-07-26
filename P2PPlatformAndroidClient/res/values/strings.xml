@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">P2PPlatformAndroidClient</string>
+    <string name="register_again">Register Again</string>
+	<string name="send_talk">Send</string>
+	<string name="refresh">Refresh</string>
+</resources>
