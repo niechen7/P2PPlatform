@@ -11,6 +11,7 @@
         android:text="@string/refresh"
         android:onClick="refresh"/>
     
+    
     <TextView
         android:id="@+id/peers"
         android:layout_width="fill_parent"
@@ -34,6 +35,13 @@
         android:layout_height="wrap_content"
         android:text="@string/send_talk"
         android:onClick="sendTalk"/>
+    
+    <Button
+        android:id="@+id/send_file"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_file"
+        android:onClick="sendFile"/>
     
     <TextView
         android:id="@+id/logs"

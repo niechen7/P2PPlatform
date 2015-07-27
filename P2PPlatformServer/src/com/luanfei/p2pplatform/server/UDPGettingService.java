@@ -57,6 +57,8 @@ public class UDPGettingService {
 			handleRegister(msg.substring(2), clientIP, clientPort);
 		} else if("02".equals(msgType)) {
 			handleBridge(msg.substring(2), clientIP, clientPort);
+		} else if("03".equals(msgType)) {
+			handleUnRegister(msg.substring(2), clientIP, clientPort);
 		}
 	}
 	
@@ -71,6 +73,11 @@ public class UDPGettingService {
 		String toPeerIP = toPeerInfo.substring(0, index);
 		int toPeerPort = Integer.parseInt(toPeerInfo.substring(index + 1));
 		new Thread(new SendUDPThread("11" + fromIP + "," + fromPort, toPeerIP, toPeerPort)).start();
+	}
+	
+	private void handleUnRegister(String peerName, String peerIP, int peerPort) {
+		peers.remove(peerName);
+		new Thread(new SendUDPThread("12", peerIP, peerPort)).start();
 	}
 	
 	private class SendUDPThread implements Runnable {

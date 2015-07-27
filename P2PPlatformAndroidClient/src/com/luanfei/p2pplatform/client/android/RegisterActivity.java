@@ -25,8 +25,12 @@ public class RegisterActivity extends Activity {
 	protected static int SERVER_SEND_PORT = 5455;
 	protected static int LOCAL_PORT = 5454;
 	protected static String SAY_HELLO = "Hello";
+	protected static String SAY_HELLO_BACK = "Hello too";
 	protected static String REGISTER_MSG_CODE = "01";
 	protected static String BRIDGE_CODE = "02";
+	protected static String UNREGISTER_CODE = "03";
+	protected static String REQUEST_SEND_FILE_CODE = "04";
+	protected static String AGREE_SEND_FILE_CODE = "05";
 	protected static String REGISTER_FINISHED_CODE = "10";
 	protected static String CALL_PEER_CODE = "11";
 	
@@ -52,6 +56,10 @@ public class RegisterActivity extends Activity {
 		IMEICode = phoneMgr.getDeviceId();
 		
 		innerIP = this.getInnerIP();
+		String mobileType = android.os.Build.MODEL;
+		String manufacturer = android.os.Build.MANUFACTURER;
+		System.out.println(mobileType);
+		System.out.println(manufacturer);
 		
 		registerInfo = (TextView)this.findViewById(R.id.register_info);
 		tryAgainBtn = (Button)this.findViewById(R.id.register_again);
@@ -82,6 +90,11 @@ public class RegisterActivity extends Activity {
 		
 		@Override
 		protected String doInBackground(String... paras) {
+			/*try {
+				Thread.sleep(1000);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}*/
 			System.out.println("doInBackground...");
 			publishProgress("Starting registering...");
 			registerTriedTime++;

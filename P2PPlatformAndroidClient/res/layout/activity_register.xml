@@ -3,12 +3,13 @@
     android:orientation="vertical"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="@drawable/register_bg">
+    android:background="@drawable/welcome">
     
     <TextView
         android:id="@+id/register_info"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"/>
     
     <Button
         android:id="@+id/register_again"

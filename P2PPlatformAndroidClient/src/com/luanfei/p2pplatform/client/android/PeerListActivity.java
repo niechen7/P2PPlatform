@@ -24,7 +24,9 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -62,6 +64,16 @@ public class PeerListActivity extends Activity {
 	private int currentPeer = 0;
 	
 	DatagramSocket socket = null;
+	
+    String fileName;
+    String filePath;
+    float fileSize;
+    
+    String selectedIP;
+    int selectedPort;
+    
+    Map<String, Integer> peerPositionMap = new HashMap<String, Integer>();
+    Map<String, Integer> peerStatusMap = new HashMap<String, Integer>(); 
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -121,7 +133,7 @@ public class PeerListActivity extends Activity {
     	private LayoutInflater customInflater;
     	private int layoutID;
     	
-    	private int selectedItemIndex = 0; 
+    	private int selectedItemIndex = -1; 
     	
     	private PeerListViewAdapter(Context context, int layoutID) {
     		this.customInflater = LayoutInflater.from(context);
@@ -147,22 +159,38 @@ public class PeerListActivity extends Activity {
     	public View getView(int position, View convertView, ViewGroup parent) {
             final Map<String, String> peerMap = (Map<String, String>)peerMapList.get(position);
             TextView peerInfoView;
+            TextView peerStatusView;
             if(convertView == null) {
                 convertView = customInflater.inflate(layoutID, null);          		 			
             } 
             peerInfoView = (TextView)convertView.findViewById(R.id.peer_info);
+            peerStatusView = (TextView)convertView.findViewById(R.id.peer_status);
             String prefix = "";
+            String ip;
+            String port;
             if(peerMap.get("name").equals(IMEICode)) {
             	prefix = "MYSELF-";
+            	ip = peerMap.get("innerIP");
+            	port = RegisterActivity.LOCAL_PORT + "";
             } else if(peerMap.get("ip").equals(outerIP)) {
+            	ip = peerMap.get("innerIP");
+            	port = RegisterActivity.LOCAL_PORT + "";
             	prefix = "Same-WIFI-";
+            } else {
+            	ip = peerMap.get("ip");
+            	port = peerMap.get("port");
             }
             peerInfoView.setText(prefix + "IMEI:" + peerMap.get("name") + " ip:" + peerMap.get("ip") + " port:" + peerMap.get("port") + " inner IP:" + peerMap.get("innerIP"));          
             if(position == selectedItemIndex) {
             	peerInfoView.setTextColor(Color.BLUE);
+            	peerStatusView.setTextColor(Color.BLUE);
+            	peerStatusView.setText("status: connecting...");
             }else {
             	peerInfoView.setTextColor(Color.BLACK);
-            }	
+            	peerStatusView.setTextColor(Color.BLACK);
+            	peerStatusView.setText("status: unknow, touch to say hello.");
+            }
+            peerPositionMap.put(ip + "_" + port, position);
     		return convertView;
     	}
     	
@@ -178,13 +206,17 @@ public class PeerListActivity extends Activity {
         	currentPeer = position;
         	Map<String, String> selectedPeerMap = peerMapList.get(position);
         	if(selectedPeerMap.get("ip").equals(outerIP)) {
-        		toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO, selectedPeerMap.get("innerIP"), RegisterActivity.LOCAL_PORT));
-        		return;
+        		selectedIP = selectedPeerMap.get("innerIP");
+        		selectedPort = RegisterActivity.LOCAL_PORT;
+        		toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO, selectedIP, selectedPort));
+        	} else {
+        		selectedIP = selectedPeerMap.get("ip");
+        		selectedPort = Integer.parseInt(selectedPeerMap.get("port"));
+        		toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO, selectedIP, selectedPort));
+        		String msg = RegisterActivity.BRIDGE_CODE + selectedPeerMap.get("ip") + "," + selectedPeerMap.get("port");
+            	toSendQueue.add(new UDPSendingMessage(msg, RegisterActivity.UDP_SERVER_IP, RegisterActivity.SERVER_GET_PORT));
         	}
-        	String msg = RegisterActivity.BRIDGE_CODE + selectedPeerMap.get("ip") + "," + selectedPeerMap.get("port");
-        	
-        	toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO, selectedPeerMap.get("ip"), Integer.parseInt(selectedPeerMap.get("port"))));
-        	toSendQueue.add(new UDPSendingMessage(msg, RegisterActivity.UDP_SERVER_IP, RegisterActivity.SERVER_GET_PORT));
+        		
         }
     }
 	
@@ -212,7 +244,7 @@ public class PeerListActivity extends Activity {
 	        while(keepListening) {
 	        	boolean hasData = true;
 	        	try {
-	        		socket.setSoTimeout(2000);
+	        		socket.setSoTimeout(100);
 	        	} catch(SocketException e) {
 	        		System.out.println(e.getMessage());
 	        		return;
@@ -220,7 +252,7 @@ public class PeerListActivity extends Activity {
 	        	try {
 	        		socket.receive(getPacket);
 	        	} catch(IOException e) {
-	        		System.out.println(e + e.getMessage());
+	        		//System.out.println(e + e.getMessage());
 	        		hasData = false;
 	        	}
 	        	if(hasData) {
@@ -231,7 +263,7 @@ public class PeerListActivity extends Activity {
 	        		System.out.println(clientIP);
 	        		clientPort = getPacket.getPort();
 	        		System.out.println(clientPort);
-	        		noticeHandler("got: " + msg + " fromIP: " + clientIP + " fromPort: " + clientPort);
+	        		noticeHandler("got: " + msg + " fromIP: " + clientIP + " fromPort: " + clientPort, msg, clientIP, clientPort);
 	        		handleMessage(msg, clientIP, clientPort);
 	        	}
 	        	
@@ -246,7 +278,10 @@ public class PeerListActivity extends Activity {
 	        		sendPacket = new DatagramPacket(sendBytes, sendBytes.length, destination, sendMsg.getToPort());
 	                try {
 	                	socket.send(sendPacket);
-	                	noticeHandler("sent: " + sendMsg.getMessage() + " toIP: " + sendMsg.getToIP() + " toPort: " + sendMsg.getToPort());
+	                	noticeHandler("sent: " + sendMsg.getMessage() + " toIP: " + sendMsg.getToIP() + " toPort: " + sendMsg.getToPort(), "", "", 0);
+	                	if(sendMsg.getMessage().length() > 1 && RegisterActivity.UNREGISTER_CODE.equals(sendMsg.getMessage().substring(0, 2))) {
+	                		System.exit(0);
+	                	}
 	                } catch(IOException e) { 
 	                	System.out.println(e.getMessage());
 	                }
@@ -265,13 +300,18 @@ public class PeerListActivity extends Activity {
 				String toIP = msg.substring(0, index);
 				int toPort = Integer.parseInt(msg.substring(index + 1));
 				toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO, toIP, toPort));
+			} else if(RegisterActivity.SAY_HELLO.equals(msg)) {
+				toSendQueue.add(new UDPSendingMessage(RegisterActivity.SAY_HELLO_BACK, fromIP, fromPort));
 			}
 		}
 		
-		private void noticeHandler(String note) {
+		private void noticeHandler(String note, String msg, String fromIP, int fromPort) {
 			Message hm = new Message();
 			Bundle bundle = new Bundle();
 			bundle.putString("note", note);
+			bundle.putString("msg", msg);
+			bundle.putString("ip", fromIP);
+			bundle.putInt("port", fromPort);
 			hm.setData(bundle);
 			UDPServiceHandler.sendMessage(hm);
 		}
@@ -280,10 +320,28 @@ public class PeerListActivity extends Activity {
 	Handler UDPServiceHandler = new Handler() {
 		public void handleMessage(Message msg) {
 			String note = msg.getData().getString("note");
-			logs.setText(note + "\n" + logs.getText());
+			logs.setText(note + "\n\n" + logs.getText());
+			String udpMsg = msg.getData().getString("msg");
+			String ip = msg.getData().getString("ip");
+			int port = msg.getData().getInt("port");
+			if(udpMsg != null && !"".equals(udpMsg)) {
+				onMessageGot(udpMsg, ip, port);
+			}
 			super.handleMessage(msg);
 		}
 	};
+	
+	private void onMessageGot(String msg, String fromIP, int fromPort) {
+		if(RegisterActivity.SAY_HELLO_BACK.equals(msg) || RegisterActivity.SAY_HELLO.equals(msg)) {
+			int position = peerPositionMap.get(fromIP + "_" + fromPort);
+			if(position > -1) {
+				TextView peerStatus = (TextView)peerListView.getChildAt(position).findViewById(R.id.peer_status);
+				if(peerStatus != null) {
+					peerStatus.setText("status: connected");
+				}
+			}
+		}
+	}
 	
 	@Override
 	protected void onDestroy() {
@@ -320,6 +378,26 @@ public class PeerListActivity extends Activity {
 		PeerListActivity.this.finish();
 	}
 	
+	public void sendFile(View view) {
+		Intent fileSelector = new Intent(Intent.ACTION_PICK,android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+		startActivityForResult(fileSelector, 1);
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {  
+        if(resultCode == Activity.RESULT_OK) {  
+        	Uri uri = data.getData();  
+            Cursor cursor = this.getContentResolver().query(uri, null, null, null, null);  
+            cursor.moveToFirst();  
+            fileName = cursor.getString(2);
+            filePath = cursor.getString(1);
+            fileSize = (float)cursor.getInt(3) / 1024;
+            String tmp = "Preparing sending file " + fileName + " to selected peer, path is " + filePath + ", size is " + fileSize + "KB.";
+            logs.setText(tmp + "\n\n" + logs.getText());
+            toSendQueue.add(new UDPSendingMessage(RegisterActivity.REQUEST_SEND_FILE_CODE + fileName + "," + fileSize, selectedIP, selectedPort));
+        }  
+    }
+	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		switch (keyCode) {
@@ -329,8 +407,9 @@ public class PeerListActivity extends Activity {
 						
 						@Override
 						public void onClick(DialogInterface dialog, int which) {
-								keepListening = false;
-								System.exit(0);						
+							toSendQueue.add(new UDPSendingMessage("03" + PeerListActivity.this.IMEICode, RegisterActivity.UDP_SERVER_IP, RegisterActivity.SERVER_GET_PORT));
+							//keepListening = false;
+							//System.exit(0);						
 						}
 					}).setNegativeButton("No", new DialogInterface.OnClickListener() {						
 						@Override
