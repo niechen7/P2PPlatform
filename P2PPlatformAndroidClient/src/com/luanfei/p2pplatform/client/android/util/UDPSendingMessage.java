@@ -2,7 +2,7 @@ package com.luanfei.p2pplatform.client.android.util;
 
 public class UDPSendingMessage {
 	
-	private String message;
+	private String message = "";
 	private String toIP;
 	private int toPort;
 	
@@ -23,5 +23,4 @@ public class UDPSendingMessage {
 	public int getToPort() {
 		return this.toPort;
 	}
-
 }

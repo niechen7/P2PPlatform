@@ -44,6 +44,51 @@
         android:onClick="sendFile"/>
     
     <TextView
+        android:id="@+id/sendFileInfo"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"/>
+    
+    <ProgressBar   
+        android:id="@+id/sendFilePg"   
+        android:layout_width="fill_parent"   
+        android:layout_height="wrap_content"   
+        style="?android:attr/progressBarStyleHorizontal">  
+    </ProgressBar>
+    
+    <TextView
+        android:id="@+id/sendFileSpeed"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"/>
+    
+    <TextView
+        android:id="@+id/getFileInfo"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"/>
+    
+    <ProgressBar   
+        android:id="@+id/getFilePg"   
+        android:layout_width="fill_parent"   
+        android:layout_height="wrap_content"   
+        style="?android:attr/progressBarStyleHorizontal">  
+    </ProgressBar>
+    
+    <TextView
+        android:id="@+id/getFileSpeed"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"/>
+    
+    <TextView
+        android:id="@+id/getFileOpen"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#00FF00"
+        android:onClick="openGetFile"/>
+    
+    <TextView
         android:id="@+id/logs"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

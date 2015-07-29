@@ -8,10 +8,12 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;  
@@ -31,8 +33,13 @@ public class RegisterActivity extends Activity {
 	protected static String UNREGISTER_CODE = "03";
 	protected static String REQUEST_SEND_FILE_CODE = "04";
 	protected static String AGREE_SEND_FILE_CODE = "05";
+	protected static String REFUSE_SEND_FILE_CODE = "06";
 	protected static String REGISTER_FINISHED_CODE = "10";
 	protected static String CALL_PEER_CODE = "11";
+	protected static String SEND_FILE_SIGN = "FILE____SEND";
+	protected static String GOT_FILE_PART_CONFIRM = "07";
+	protected static String GOT_FILE_PART = "08";
+	protected static String fileDir = "p2pfiles";
 	
 	private boolean registered = false;
 	private int registerTriedTime = 0;
@@ -63,7 +70,10 @@ public class RegisterActivity extends Activity {
 		
 		registerInfo = (TextView)this.findViewById(R.id.register_info);
 		tryAgainBtn = (Button)this.findViewById(R.id.register_again);
-		
+		File destDir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + fileDir);
+		if(!destDir.exists()) {
+		   destDir.mkdirs();
+		}
 	}
 	
 	@Override
@@ -90,11 +100,11 @@ public class RegisterActivity extends Activity {
 		
 		@Override
 		protected String doInBackground(String... paras) {
-			/*try {
+			try {
 				Thread.sleep(1000);
 			} catch(Exception e) {
 				e.printStackTrace();
-			}*/
+			}
 			System.out.println("doInBackground...");
 			publishProgress("Starting registering...");
 			registerTriedTime++;
