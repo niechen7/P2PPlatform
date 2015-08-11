@@ -19,5 +19,10 @@
         <item name="android:windowNoTitle">true</item>  
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
     </style>
+    
+    <style name="ActionBarTheme" parent="AppBaseTheme">
+        <!--item name="android:windowBackground">@drawable/register_bg</item-->
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
 
 </resources>

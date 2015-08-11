@@ -4,6 +4,7 @@ import android.telephony.TelephonyManager;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -188,8 +189,13 @@ public class RegisterActivity extends Activity {
             		}
             		Intent intent = new Intent();
             		intent.setClass(RegisterActivity.this, PeerListActivity.class);
-            		intent.putExtra("IMEI", IMEICode);
-            		intent.putExtra("innerIP", innerIP);
+            		SharedPreferences settings = getSharedPreferences("registerInfo", Activity.MODE_WORLD_READABLE);
+            		SharedPreferences.Editor editor = settings.edit();
+            		editor.putString("IMEI", IMEICode);
+            		editor.putString("innerIP", innerIP);
+            		editor.commit();
+            		System.out.println(settings.getString("IMEI", "xx"));
+            		System.out.println(settings.getString("innerIP", "0.0.0.0"));
             		startActivity(intent);
             		RegisterActivity.this.finish();
             		

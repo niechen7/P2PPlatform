@@ -33,6 +33,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -41,9 +42,13 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StatFs;
+import android.support.v7.app.ActionBarActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -55,7 +60,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
-public class PeerListActivity extends Activity {
+public class PeerListActivity extends ActionBarActivity {
 	
 	private List<Map<String, String>> peerMapList = new ArrayList<Map<String, String>>();
 	
@@ -133,8 +138,13 @@ public class PeerListActivity extends Activity {
     int logsLineNum = 0;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		IMEICode = this.getIntent().getStringExtra("IMEI");
-		innerIP = this.getIntent().getStringExtra("innerIP");
+		try {
+		System.out.println("onCreate...");
+		SharedPreferences settings = getSharedPreferences("registerInfo", Activity.MODE_PRIVATE);
+		IMEICode = settings.getString("IMEI", "uu");
+		innerIP = settings.getString("innerIP", "0.0.0.0");
+		System.out.println(IMEICode);
+		System.out.println(innerIP);
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_peerlist);
 		peers = (TextView)this.findViewById(R.id.peers);
@@ -146,21 +156,21 @@ public class PeerListActivity extends Activity {
 		sendFileBtn.setEnabled(false);
 		logs.setMovementMethod(ScrollingMovementMethod.getInstance()); 
 		sendFilePg = (ProgressBar)this.findViewById(R.id.sendFilePg);
-		sendFilePg.setVisibility(View.INVISIBLE);
+		sendFilePg.setVisibility(View.GONE);
 		sendFileInfo = (TextView)this.findViewById(R.id.sendFileInfo);
 		sendFileSpeed = (TextView)this.findViewById(R.id.sendFileSpeed);
-		sendFileInfo.setVisibility(View.INVISIBLE);
-		sendFileSpeed.setVisibility(View.INVISIBLE);
+		sendFileInfo.setVisibility(View.GONE);
+		sendFileSpeed.setVisibility(View.GONE);
 		
 		getFilePg = (ProgressBar)this.findViewById(R.id.getFilePg);
-		getFilePg.setVisibility(View.INVISIBLE);
+		getFilePg.setVisibility(View.GONE);
 		getFileInfo = (TextView)this.findViewById(R.id.getFileInfo);
 		getFileSpeed = (TextView)this.findViewById(R.id.getFileSpeed);
-		getFileInfo.setVisibility(View.INVISIBLE);
-		getFileSpeed.setVisibility(View.INVISIBLE);
+		getFileInfo.setVisibility(View.GONE);
+		getFileSpeed.setVisibility(View.GONE);
 		
 		getFileOpen = (TextView)this.findViewById(R.id.getFileOpen);
-		getFileOpen.setVisibility(View.INVISIBLE);
+		getFileOpen.setVisibility(View.GONE);
 		
 		if(!initPeers()) {
 			return;
@@ -169,10 +179,43 @@ public class PeerListActivity extends Activity {
 		listViewAdpter = new PeerListViewAdapter(PeerListActivity.this, R.layout.peer_list);
 		peerListView.setAdapter(listViewAdpter);
 		peerListView.setOnItemClickListener(new PeerItemClickListener());
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    // Inflate the menu items for use in the action bar
+	    MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.peerlist_activity_actions, menu);
+	    return super.onCreateOptionsMenu(menu);
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    // Handle presses on the action bar items
+	    switch (item.getItemId()) {
+	        case R.id.action_download:
+	        	//keepListening = false;
+	    		//try {
+	    		//	socket.close();
+	    		//} catch(Exception e) {
+	    		//	e.printStackTrace();
+	    		//}
+	    		Intent intent = new Intent();
+	    		intent.setClass(PeerListActivity.this, DownloadActivity.class);
+	    		startActivity(intent);
+	    		//PeerListActivity.this.finish();
+	            //return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	    }
 	}
 	
 	@Override
 	protected void onStart() {
+		System.out.println("onStart()...");
 		super.onStart();
 		new Thread(new UDPService()).start();
 	}
@@ -497,7 +540,7 @@ public class PeerListActivity extends Activity {
 				    	toSendQueue.add(new UDPSendingMessage(RegisterActivity.AGREE_SEND_FILE_CODE + ":User agree to get the file " + getFileName + "(" + getFileSize + "bytes).", tempFromIP, tempFromPort));
 				    	isFileTransfer = true;
 				    	sendFileBtn.setEnabled(false);
-						getFileOpen.setVisibility(View.INVISIBLE);
+						getFileOpen.setVisibility(View.GONE);
 				    	getFileInfo.setVisibility(View.VISIBLE);
 						getFileInfo.setText("Getting file " + getFileName + "... size: 0/" + (getFileSize / 1000) + " kb");
 						getFileSpeed.setVisibility(View.VISIBLE);
@@ -597,10 +640,17 @@ public class PeerListActivity extends Activity {
 	}
 	
 	@Override
+	protected void onStop() {
+		System.out.println("onStop...");
+		super.onStop();
+		//System.exit(0);
+	}
+	
+	@Override
 	protected void onDestroy() {
+		System.out.println("onDestroy");
 		keepListening = false;
 		super.onDestroy();
-		//System.exit(0);
 	}
 	
 	public void sendTalk(View view) {
