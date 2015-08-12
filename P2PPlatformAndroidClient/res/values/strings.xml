@@ -10,6 +10,7 @@
 	<string name="action_download">Download</string>
 	<string name="action_peer_list">Peer List</string>
 	<string name="download_url_hint"><![CDATA[http://cn-cq1-cu.acgvideo.com/vg4/d/fb/4133937-1.flv?expires=1439303700&ssig=W7Lom7CnbKPHo3g_5D45Lg&o=453675682&appkey=1&rate=0]]></string>
-    <string name="download_url_title">Download URL:</string>
     <string name="btn_download">Download</string>
+    <string name="download_url_title">Download URL:</string>
+    <string name="download_thread_count">How many threads to download:</string>
 </resources>
