@@ -69,6 +69,9 @@ public class DownloadActivity extends ActionBarActivity {
 	private String downloadFileName;
 	private int downloadFileBytes;
 	private double downloadFileMB;
+	private long downloadStartTime;
+	private long downloadSpentTime;
+	private int downloadGotBytes;
 	
 	private int threadCount = 5;
 	
@@ -107,7 +110,11 @@ public class DownloadActivity extends ActionBarActivity {
 	}
 	
 	public void download(View view) {
+		downloadPaused = false;
 		downloadBtn.setEnabled(false);
+		combineFileInfo.setVisibility(View.GONE);
+		downloadInfoLayout.setVisibility(View.GONE);
+		downloadFileInfo.setText("");
 		threadCount = (Integer)this.spDownloadThreadCount.getSelectedItem();
 		partsFinished = new boolean[threadCount];
 		System.out.println(this.threadCount);
@@ -153,8 +160,9 @@ public class DownloadActivity extends ActionBarActivity {
 	}
 	
 	private void onCombineDone(Bundle bundle) {
+		long spentTime = bundle.getLong(MSG_KEY_SPENT_TIME);
 		combineFilePg.setProgress(combineFilePg.getMax());
-		combineFileTitle.setText("Combining all parts to a file finished. " + downloadFileBytes + "/" + downloadFileBytes + " bytes.");
+		combineFileTitle.setText("Combining all parts to a file finished. " + downloadFileBytes + "/" + downloadFileBytes + " bytes. Spent " + (spentTime / 1000) + " s.");
 		downloadBtn.setEnabled(true);
 		combineFileResult.setClickable(true);
 	}
@@ -168,6 +176,9 @@ public class DownloadActivity extends ActionBarActivity {
 			downloadFileMB = this.roundDouble(size / 1024.0 / 1024.0, 2);
 			downloadFileInfo.setText("Downloading file " + downloadFileName + ", size is " + downloadFileMB + " MB (" + size + " KB)");
 			initDownloadPartInfos();
+			downloadSpentTime = 0;
+			downloadGotBytes = 0;
+			downloadStartTime = System.currentTimeMillis();
 			startDownloadThreads();
 		} else {
 			downloadBtn.setEnabled(true);
@@ -195,7 +206,7 @@ public class DownloadActivity extends ActionBarActivity {
 			partPg.setMax(info.partSize);
 			partPg.setProgress(0);
 			((TextView)downloadInfoViews[i].findViewById(R.id.download_part_speed)).setText("speed: 0 KB/s");
-			((TextView)downloadInfoViews[i].findViewById(R.id.download_part_downloaded)).setText("finished: 0/" + info.partSize + " KB");
+			((TextView)downloadInfoViews[i].findViewById(R.id.download_part_downloaded)).setText("progress: 0/" + info.partSize + " KB");
 		}
 	}
 	
@@ -219,6 +230,7 @@ public class DownloadActivity extends ActionBarActivity {
 	private void onErrorOccurred(Bundle bundle) {
 		String errMsg = bundle.getString(MSG_KEY_ERROR_MSG);
 		Toast.makeText(this, errMsg, Toast.LENGTH_LONG).show();
+		downloadFileInfo.setText(downloadFileInfo.getText() + " error occurred: " + errMsg);
 		this.downloadPaused = true;
 		downloadBtn.setEnabled(true);
 	}
@@ -226,22 +238,29 @@ public class DownloadActivity extends ActionBarActivity {
 	private void onDataGot(Bundle bundle) {
 		int bytesGot =bundle.getInt(MSG_KEY_BYTES_GOT);
 		long spentTime = bundle.getLong(MSG_KEY_SPENT_TIME);
+		downloadGotBytes += bytesGot;
+		downloadSpentTime = System.currentTimeMillis() - downloadStartTime;
+		downloadFileInfo.setText("Downloading file " + downloadFileName + ", size is " + downloadFileMB + " MB (" + downloadFileBytes + " KB), average speed is " + this.roundDouble(downloadGotBytes / 1024.0 / downloadSpentTime * 1000.0, 2) + " bytes/s .");
 		int totalBytesGot = bundle.getInt(MSG_KEY_TOTAL_BYTES_GOT);
 		int index = bundle.getInt(MSG_KEY_PART_INDEX);
 		double speed = this.roundDouble((bytesGot / (spentTime / 1000.0) / 1000.0), 2);
 		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_speed)).setText("speed: " + speed + " KB/s");
-		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_downloaded)).setText("finished: " + totalBytesGot + "/" + downloadPartInfos[index].partSize + " KB");
+		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_downloaded)).setText("progress: " + totalBytesGot + "/" + downloadPartInfos[index].partSize + " KB");
 		((ProgressBar)downloadInfoViews[index].findViewById(R.id.download_part_pg)).setProgress(totalBytesGot);
 	}
 	
 	private void onDownloaded(Bundle bundle) {
 		long totalSpentTime = bundle.getLong(MSG_KEY_TOTAL_SPENT_TIME);
 		int index = bundle.getInt(MSG_KEY_PART_INDEX);
-		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_downloaded)).setText("all finished, spent " + (totalSpentTime / 1000) + " s.");
+		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_downloaded)).setText("finished, spent " + (totalSpentTime / 1000) + " s.");
+		double aSpeed = this.roundDouble((downloadPartInfos[index].partSize / (totalSpentTime / 1000.0) / 1000.0), 2);
+		((TextView)downloadInfoViews[index].findViewById(R.id.download_part_speed)).setText("average speed: " + aSpeed + " KB/s");
 		ProgressBar partPg = (ProgressBar)downloadInfoViews[index].findViewById(R.id.download_part_pg);
 		partPg.setProgress(partPg.getMax());
 		partsFinished[index] = true;
 		if(this.isAllFinished()) {
+			downloadSpentTime = System.currentTimeMillis() - downloadStartTime;
+			downloadFileInfo.setText("Downloading file " + downloadFileName + " finished, size is " + downloadFileMB + " MB (" + downloadFileBytes + " KB), spent " + (downloadSpentTime / 1000) + "s, average speed is " + this.roundDouble(downloadFileBytes / 1024.0 / downloadSpentTime * 1000.0, 2) + " bytes/s .");
 			combineFile();
 		}
 	}
@@ -261,6 +280,18 @@ public class DownloadActivity extends ActionBarActivity {
 			DataOutputStream dos = null;
 			DataInputStream dis = null;
 			try {
+				long spentTime = System.currentTimeMillis();
+				if(threadCount == 1) {
+					File toFile = new File(fileSavedDir + downloadFileName);
+					if(toFile.exists()) {
+						toFile.delete();
+					}
+					File fromFile = new File(fileSavedDir + downloadFileName + ".part0");
+					fromFile.renameTo(toFile);
+					spentTime = System.currentTimeMillis() - spentTime;
+					notifyCombineDone(spentTime);
+					return;
+				}		
 				dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fileSavedDir + downloadFileName, false)));
 				long lastTime = System.currentTimeMillis();
 				int combinedBytes = 0;
@@ -282,7 +313,8 @@ public class DownloadActivity extends ActionBarActivity {
 					File file = new File(fileSavedDir + downloadFileName + ".part" + i);
 					file.delete();
 				}
-				notifyCombineDone();
+				spentTime = System.currentTimeMillis() - spentTime;
+				notifyCombineDone(spentTime);
 			} catch(Exception e) {
 				System.out.println(e);
 				notifyErrorOccurred(e.getMessage());
@@ -310,9 +342,10 @@ public class DownloadActivity extends ActionBarActivity {
 			notifyServicesHandler(bundle);
 		}
 		
-		private void notifyCombineDone() {
+		private void notifyCombineDone(long spentTime) {
 			Bundle bundle = new Bundle();
 			bundle.putInt(MSG_KEY_TITLE, MSG_TITLE_COMBINE_DONE);
+			bundle.putLong(MSG_KEY_SPENT_TIME, spentTime);
 			notifyServicesHandler(bundle);
 		}
 		
@@ -377,7 +410,7 @@ public class DownloadActivity extends ActionBarActivity {
 					long lastTime = System.currentTimeMillis();
 					int lastGotBytes = 0;
 					int totalGotBytes = 0;
-					while(!downloadPaused && (getLength = dis.read(buffer, 0, buffer.length)) > 0) {
+					while((!downloadPaused) && ((getLength = dis.read(buffer, 0, buffer.length)) > 0)) {
 						dos.write(buffer, 0, getLength);
 						dos.flush();
 						lastGotBytes += getLength;
@@ -389,7 +422,15 @@ public class DownloadActivity extends ActionBarActivity {
 						    lastGotBytes = 0;
 						}	
 					}
-					notifyDownloaded(System.currentTimeMillis() - startTime);
+					System.out.println(totalGotBytes);
+					System.out.println(downloadPaused);
+					System.out.println(toByte - fromByte);
+					if((totalGotBytes < (toByte - fromByte)) && (!downloadPaused)) {
+						throw new Exception("Unexpected ending of steam.");
+					}
+					if(!downloadPaused) {
+						notifyDownloaded(System.currentTimeMillis() - startTime);
+					}
 				}
 			} catch(Exception e) {
 				System.out.println(e);
