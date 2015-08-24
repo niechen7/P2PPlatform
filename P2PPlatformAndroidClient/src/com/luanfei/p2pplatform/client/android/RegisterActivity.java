@@ -40,6 +40,8 @@ public class RegisterActivity extends Activity {
 	protected static String SEND_FILE_SIGN = "FILE____SEND";
 	protected static String GOT_FILE_PART_CONFIRM = "07";
 	protected static String GOT_FILE_PART = "08";
+	protected static String PEER_DOWNLOAD_REQUEST = "21";
+	protected static String PEER_GOT_INFO = "22";
 	protected static String fileDir = "p2pfiles";
 	
 	private boolean registered = false;

@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -19,6 +21,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -88,7 +91,7 @@ public class DownloadActivity extends ActionBarActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_download);
 		ActionBar actionBar = getSupportActionBar();
-	    actionBar.setDisplayHomeAsUpEnabled(false);	 
+	    actionBar.setDisplayHomeAsUpEnabled(true);	 
 	    
 	    downloadInfoLayout = (LinearLayout)this.findViewById(R.id.download_info);
 	    downloadInfoLayout.setVisibility(View.GONE);
@@ -495,6 +498,7 @@ public class DownloadActivity extends ActionBarActivity {
 			if(end < 1) {
 				end = textUrl.length();
 			}
+			textUrl = textUrl.substring(0, end);
 			int start = textUrl.lastIndexOf("/");
 			if(start < 0) {
 				start = -1;
@@ -528,6 +532,31 @@ public class DownloadActivity extends ActionBarActivity {
 		Uri uri = Uri.parse(fileSavedDir + this.downloadFileName);
 		it.setDataAndType(uri, "video/*");
 		startActivity(it);
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		switch (keyCode) {
+		case KeyEvent.KEYCODE_BACK:
+			AlertDialog.Builder build = new AlertDialog.Builder(this);
+			build.setTitle("Exit").setMessage("are you sure to exit?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							//toSendQueue.add(new UDPSendingMessage("03" + PeerListActivity.this.IMEICode, RegisterActivity.UDP_SERVER_IP, RegisterActivity.SERVER_GET_PORT));
+							//keepListening = false;
+							System.exit(0);						
+						}
+					}).setNegativeButton("No", new DialogInterface.OnClickListener() {						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {							
+						}
+					}).show();
+			break;
+		default:
+			break;
+		}
+		return false;	
 	}
 	
 }

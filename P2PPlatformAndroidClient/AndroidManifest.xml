@@ -42,6 +42,14 @@
             
             
         </activity>
+        <activity
+            android:name=".P2PDownloadActivity"
+            android:label="@string/action_p2pdownload" 
+            android:theme="@style/ActionBarTheme">
+        	
+            
+            
+        </activity>
     </application>
 
 </manifest>

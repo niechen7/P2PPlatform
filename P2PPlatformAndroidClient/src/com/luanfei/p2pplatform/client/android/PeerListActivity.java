@@ -197,17 +197,27 @@ public class PeerListActivity extends ActionBarActivity {
 	    // Handle presses on the action bar items
 	    switch (item.getItemId()) {
 	        case R.id.action_download:
-	        	//keepListening = false;
-	    		//try {
-	    		//	socket.close();
-	    		//} catch(Exception e) {
-	    		//	e.printStackTrace();
-	    		//}
+	        	keepListening = false;
+	    		try {
+	    			socket.close();
+	    		} catch(Exception e) {
+	    			e.printStackTrace();
+	    		}
 	    		Intent intent = new Intent();
 	    		intent.setClass(PeerListActivity.this, DownloadActivity.class);
 	    		startActivity(intent);
 	    		//PeerListActivity.this.finish();
-	            //return true;
+	            return true;
+	        case R.id.action_p2pdownload:
+	        	keepListening = false;
+	    		try {
+	    			socket.close();
+	    		} catch(Exception e) {
+	    			e.printStackTrace();
+	    		}
+	    		Intent intent2 = new Intent();
+	    		intent2.setClass(PeerListActivity.this, P2PDownloadActivity.class);
+	    		startActivity(intent2);
 	        default:
 	            return super.onOptionsItemSelected(item);
 	    }
@@ -647,6 +657,20 @@ public class PeerListActivity extends ActionBarActivity {
 	}
 	
 	@Override
+	protected void onPause() {
+		System.out.println("onPause...");
+		super.onStop();
+		//System.exit(0);
+	}
+	
+	@Override
+	protected void onResume() {
+		System.out.println("onResume...");
+		super.onStop();
+		//System.exit(0);
+	}
+	
+	@Override
 	protected void onDestroy() {
 		System.out.println("onDestroy");
 		keepListening = false;
@@ -717,8 +741,8 @@ public class PeerListActivity extends ActionBarActivity {
 						@Override
 						public void onClick(DialogInterface dialog, int which) {
 							toSendQueue.add(new UDPSendingMessage("03" + PeerListActivity.this.IMEICode, RegisterActivity.UDP_SERVER_IP, RegisterActivity.SERVER_GET_PORT));
-							//keepListening = false;
-							//System.exit(0);						
+							keepListening = false;
+							System.exit(0);						
 						}
 					}).setNegativeButton("No", new DialogInterface.OnClickListener() {						
 						@Override
